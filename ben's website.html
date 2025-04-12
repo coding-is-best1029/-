@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Super Hard Calculator, Grapher, Clicker & Rating</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    section {
+      background: #fff;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    input[type="text"] {
+      width: 80%;
+      padding: 8px;
+      font-size: 1em;
+      margin: 10px auto;
+      display: block;
+    }
+    button {
+      display: block;
+      padding: 10px 20px;
+      font-size: 1em;
+      margin: 10px auto;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background-color: #007BFF;
+      color: #fff;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    canvas {
+      display: block;
+      margin: 10px auto;
+    }
+    p.error {
+      color: red;
+      text-align: center;
+    }
+    /* Rating Stars */
+    #ratingButtons .star {
+      font-size: 2em;
+      cursor: pointer;
+      color: gold;
+      margin: 0 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Super Hard Calculator, Grapher, Clicker & Rating</h1>
+    
+    <!-- Calculator Section -->
+    <section id="calculator">
+      <h2>Calculator</h2>
+      <p>Enter a math expression (for example, <code>2+3*(4-1)</code>):</p>
+      <input type="text" id="calcInput" placeholder="Enter expression">
+      <button onclick="calculate()">Calculate</button>
+      <p>Result: <span id="calcResult"></span></p>
+    </section>
+    
+    <!-- Grapher Section -->
+    <section id="grapher">
+      <h2>Function Grapher</h2>
+      <p>
+        Enter a function in terms of <code>x</code> (for example, <code>sin(x)</code>, <code>x^2</code>, <code>log(x)</code>).
+      </p>
+      <input type="text" id="graphInput" placeholder="Enter function e.g. sin(x)">
+      <button onclick="drawGraph()">Graph Function</button>
+      <p id="graphError" class="error"></p>
+      <canvas id="graphCanvas" width="600" height="400" style="border:1px solid #000;"></canvas>
+    </section>
+    
+    <!-- Clicker Game Section -->
+    <section id="clicker">
+      <h2>Clicker Game</h2>
+      <p>Clicks: <span id="scoreDisplay">0</span></p>
+      <button id="clickButton" onclick="clickButton()">Click Me!</button>
+      <br>
+      <!-- Unlockable upgrade buttons -->
+      <button id="upgradeButton" onclick="upgradeMultiplier()" style="display: none;">
+        Upgrade Multiplier (Cost: 10)
+      </button>
+      <button id="autoClickButton" onclick="autoClickUpgrade()" style="display: none;">
+        Unlock Auto-Click (Cost: 50)
+      </button>
+    </section>
+    
+    <!-- Support Button Section -->
+    <section id="support">
+      <button onclick="window.open('https://www.youtube.com/@2.1-b1l', '_blank')">
+        Support this YouTube Channel
+      </button>
+    </section>
+    
+    <!-- Rating Section -->
+    <section id="rating">
+      <h2>Rate the Channel</h2>
+      <p>Click on a star to rate the channel:</p>
+      <div id="ratingButtons">
+        <span class="star" data-rating="1">&#9733;</span>
+        <span class="star" data-rating="2">&#9733;</span>
+        <span class="star" data-rating="3">&#9733;</span>
+        <span class="star" data-rating="4">&#9733;</span>
+        <span class="star" data-rating="5">&#9733;</span>
+      </div>
+      <canvas id="ratingCanvas" width="600" height="250" style="border:1px solid #000;"></canvas>
+    </section>
+  </div>
+  
+  <!-- Include math.js library for expression evaluation and graphing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+  
+  <script>
+    // ================= Calculator =================
+    function calculate() {
+      const input = document.getElementById('calcInput').value;
+      try {
+        const result = math.evaluate(input);
+        document.getElementById('calcResult').textContent = result;
+      } catch (error) {
+        document.getElementById('calcResult').textContent = "Error: " + error.message;
+      }
+    }
+    
+    // ================= Function Grapher =================
+    function drawGraph() {
+      const canvas = document.getElementById('graphCanvas');
+      const ctx = canvas.getContext('2d');
+      const expr = document.getElementById('graphInput').value;
+      const errorDisplay = document.getElementById('graphError');
+      errorDisplay.textContent = "";
+      
+      // Clear the canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw coordinate axes (centered)
+      const midX = canvas.width / 2;
+      const midY = canvas.height / 2;
+      ctx.beginPath();
+      ctx.strokeStyle = "#aaa";
+      // x-axis
+      ctx.moveTo(0, midY);
+      ctx.lineTo(canvas.width, midY);
+      // y-axis
+      ctx.moveTo(midX, 0);
+      ctx.lineTo(midX, canvas.height);
+      ctx.stroke();
+      
+      // Set scale: pixels per unit.
+      const scale = 30;
+      ctx.beginPath();
+      ctx.strokeStyle = "blue";
+      let firstPoint = true;
+      
+      // Loop over each pixel column to compute the function
+      for (let pixelX = 0; pixelX <= canvas.width; pixelX++) {
+         const x = (pixelX - midX) / scale;
+         let y;
+         try {
+            y = math.evaluate(expr, { x: x });
+         } catch (err) {
+            errorDisplay.textContent = "Graph error: " + err.message;
+            return;
+         }
+         // Convert function value to canvas coordinate.
+         const pixelY = midY - y * scale;
+         if (firstPoint) {
+            ctx.moveTo(pixelX, pixelY);
+            firstPoint = false;
+         } else {
+            ctx.lineTo(pixelX, pixelY);
+         }
+      }
+      ctx.stroke();
+    }
+    
+    // ================= Clicker Game =================
+    let score = 0;
+    let multiplier = 1;
+    let multiplierUnlocked = false;
+    let autoClickUnlocked = false;
+    let autoClickActive = false;
+    let autoClickInterval = null;
+    
+    function updateScore() {
+      document.getElementById("scoreDisplay").textContent = score;
+      // Unlock multiplier upgrade when score reaches 10.
+      if (!multiplierUnlocked && score >= 10) {
+        multiplierUnlocked = true;
+        document.getElementById("upgradeButton").style.display = "inline-block";
+      }
+      // Unlock auto-click upgrade when score reaches 50.
+      if (!autoClickUnlocked && score >= 50) {
+        autoClickUnlocked = true;
+        document.getElementById("autoClickButton").style.display = "inline-block";
+      }
+    }
+    
+    function clickButton() {
+      score += multiplier;
+      updateScore();
+    }
+    
+    function upgradeMultiplier() {
+      let cost = 10 * multiplier;
+      if (score >= cost) {
+        score -= cost;
+        multiplier++;
+        alert("Multiplier upgraded to " + multiplier + "x!");
+        document.getElementById("upgradeButton").textContent = "Upgrade Multiplier (Cost: " + (10 * multiplier) + ")";
+        updateScore();
+      } else {
+        alert("Not enough clicks for upgrade! You need " + cost + " clicks.");
+      }
+    }
+    
+    function autoClickUpgrade() {
+      let cost = 50;
+      if (score >= cost) {
+        score -= cost;
+        alert("Auto-Click unlocked! You will now gain " + multiplier + " clicks automatically every second.");
+        updateScore();
+        if (!autoClickActive) {
+          autoClickActive = true;
+          autoClickInterval = setInterval(function() {
+            score += multiplier;
+            updateScore();
+          }, 1000);
+        }
+        // Remove the auto-click upgrade button once purchased.
+        document.getElementById("autoClickButton").style.display = "none";
+      } else {
+        alert("Not enough clicks for auto-click upgrade!");
+      }
+    }
+    
+    // ================= Rating Section =================
+    // Array to hold counts for each rating (1 to 5 stars).
+    let ratingCounts = [0, 0, 0, 0, 0];
+    
+    function drawRatingChart() {
+      const canvas = document.getElementById('ratingCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const numBars = 5;
+      const gap = 20;
+      const maxBarHeight = canvas.height - 40; // Reserve space for labels.
+      
+      // Determine scaling: if there are no ratings, use 1 to avoid division by zero.
+      let maxCount = Math.max(...ratingCounts);
+      if (maxCount === 0) { maxCount = 1; }
+      const scaleFactor = maxBarHeight / maxCount;
+      
+      const barWidth = (canvas.width - (numBars + 1) * gap) / numBars;
+      
+      ctx.font = "16px Arial";
+      ctx.textAlign = "center";
+      
+      for (let i = 0; i < numBars; i++) {
+        const count = ratingCounts[i];
+        const barHeight = count * scaleFactor;
+        const x = gap + i * (barWidth + gap);
+        const y = canvas.height - 40 - barHeight;
+        
+        // Draw the bar.
+        ctx.fillStyle = "blue";
+        ctx.fillRect(x, y, barWidth, barHeight);
+        
+        // Display the count above the bar.
+        ctx.fillStyle = "black";
+        ctx.fillText(count, x + barWidth / 2, y - 5);
+        
+        // Label the bar (e.g., "1 Star", "2 Star", etc.).
+        ctx.fillText((i + 1) + " Star", x + barWidth / 2, canvas.height - 20);
+      }
+    }
+    
+    // Attach click event listeners to each star.
+    document.querySelectorAll('#ratingButtons .star').forEach(function(star) {
+      star.addEventListener('click', function() {
+        const rating = parseInt(this.getAttribute('data-rating'));
+        ratingCounts[rating - 1]++;
+        drawRatingChart();
+      });
+    });
+  </script>
+</body>
+</html>
+<!-- End of ben's website.html -->
